@@ -1,6 +1,5 @@
 "use client";
-import { useState } from "react";
-import axios from "axios";
+import { useState, useEffect } from "react";
 import Header from "./components/Header";
 
 export default function Home() {
@@ -8,18 +7,112 @@ export default function Home() {
   const [quantity, setQuantity] = useState(0);
   const [price, setPrice] = useState(0);
   const [stock, setStock] = useState([]);
-
-  const handleAddProduct = async () => {
-    await axios.post("/api/addProduct", { product, quantity, price });
-    setProduct("");
-    setQuantity(0);
-    setPrice(0);
-  };
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  useEffect(() => {
+    fetchStock();
+  }, [selectedProduct]);
 
   const fetchStock = async () => {
-    const response = await axios.get("/api/getStock");
-    setStock(response.data);
+    try {
+      const response = await fetch("/api/product");
+      if (response.ok) {
+        const data = await response.json();
+        setStock(data);
+      } else {
+        console.error("Failed to fetch stock");
+      }
+    } catch (error) {
+      console.error("Error fetching stock:", error);
+    }
   };
+
+  const handleUpdateProduct = async () => {
+    if (!selectedProduct) return; // Ensure a product is selected
+
+    try {
+      const response = await fetch(`/api/product/${selectedProduct._id}`, {
+        method: "PUT", // Use PUT for updating
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: product, // Updated name
+          quantity, // Updated quantity
+          price, // Updated price
+        }),
+      });
+
+      if (response.ok) {
+        console.log("PRODUCT UPDATED");
+        setSelectedProduct(null); // Clear the selected product
+      } else {
+        console.error("Failed to update product");
+      }
+    } catch (error) {
+      console.error("Error updating product:", error);
+    }
+  };
+
+  const handleDeleteProduct = async (productId) => {
+    try {
+      console.log(productId);
+      const response = await fetch(`/api/product?id=${productId}`, {
+        method: "DELETE", // Use DELETE for deleting
+      });
+
+      if (response.ok) {
+        console.log("PRODUCT DELETED");
+        fetchStock();
+      } else {
+        console.error("Failed to delete product");
+      }
+    } catch (error) {
+      console.error("Error deleting product:", error);
+    }
+  };
+
+  // const fetchStock = async () => {
+  //   try {
+  //     const response = await fetch("/api/product");
+  //     if (response.ok) {
+  //       const data = await response.json();
+  //       setStock(data);
+  //     } else {
+  //       console.error("Failed to fetch stock");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching stock:", error);
+  //   }
+  // };
+
+  const handleAddProduct = async () => {
+    try {
+      const response = await fetch("/api/product", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ product, quantity, price }),
+      });
+
+      if (response.ok) {
+        console.log("PRODUCT ADDED");
+        setProduct("");
+        setQuantity(0);
+        setPrice(0);
+        fetchStock(); // Fetch the updated stock after adding the product
+      } else {
+        console.error("Failed to add product");
+      }
+    } catch (error) {
+      console.error("Error adding product:", error);
+    }
+  };
+
+  // Use useEffect to fetch stock data when the component mounts
+  useEffect(() => {
+    fetchStock();
+  }, []);
 
   return (
     <>
@@ -57,12 +150,6 @@ export default function Home() {
         </div>
 
         <h1 className="text-2xl font-bold mt-8 mb-4">Display Current stock</h1>
-        <button
-          onClick={fetchStock}
-          className="bg-blue-500 text-white px-4 py-2 rounded"
-        >
-          Fetch Stock
-        </button>
         <div className="mt-4">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -79,16 +166,28 @@ export default function Home() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {stock.map((product, index) => (
+              {stock.map((item, index) => (
                 <tr key={index}>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {product.name}
+                    {item.product}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {product.quantity}
+                    {item.quantity}
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap">{item.price}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {product.price}
+                    <button
+                      className="bg-blue-500 text-white px-4 py-2 mr-2 rounded-sm"
+                      onClick={() => setSelectedProduct(item)}
+                    >
+                      Update
+                    </button>
+                    <button
+                      className="bg-blue-500 text-white px-4 py-2 rounded-sm"
+                      onClick={() => handleDeleteProduct(item._id)}
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}
