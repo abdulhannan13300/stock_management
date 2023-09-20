@@ -14,7 +14,7 @@ export default function Home() {
 
   const fetchStock = async () => {
     try {
-      const response = await fetch("/api/product");
+      const response = await fetch("/api/product/add");
       if (response.ok) {
         const data = await response.json();
         setStock(data);
@@ -56,7 +56,7 @@ export default function Home() {
   const handleDeleteProduct = async (productId) => {
     try {
       console.log(productId);
-      const response = await fetch(`/api/product?id=${productId}`, {
+      const response = await fetch(`/api/product/${productId}`, {
         method: "DELETE", // Use DELETE for deleting
       });
 
@@ -87,7 +87,7 @@ export default function Home() {
 
   const handleAddProduct = async () => {
     try {
-      const response = await fetch("/api/product", {
+      const response = await fetch("/api/product/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
